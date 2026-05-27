@@ -250,8 +250,8 @@
             osc.type = 'sine';
             osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
             
-            // ЗБІЛЬШЕНО ГУЧНІСТЬ ВДВІЧІ (множник 0.8 замість 0.4)
-            gainNode.gain.setValueAtTime(volumeLevel * 0.8, audioCtx.currentTime);
+            // ЗБІЛЬШЕНО ГУЧНІСТЬ ВДВІЧІ (множник 3.8 замість 0.4)
+            gainNode.gain.setValueAtTime(volumeLevel * 3.8, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
             
             osc.start();
