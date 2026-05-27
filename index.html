@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Йога Таймер — Великий екран</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            background-color: #f0f4f3; 
+            color: #2d3748; 
+            text-align: center; 
+            padding: 15px; 
+            margin: 0; 
+        }
+        .timer-container { 
+            background: #ffffff; 
+            border-radius: 20px; 
+            padding: 25px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.06); 
+            max-width: 440px; 
+            margin: auto; 
+            border: 1px solid #e2e8f0;
+        }
+        h2 { margin-top: 0; color: #2c5282; font-size: 1.4rem; margin-bottom: 20px; }
+        .setting-row { 
+            margin: 10px 0; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            text-align: left;
+        }
+        .dynamic-inputs {
+            background: #f7fafc;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border: 1px dashed #cbd5e1;
+        }
+        .dynamic-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 6px 0;
+        }
+        label { font-size: 0.95rem; color: #4a5568; font-weight: 500; }
+        input[type="number"] { 
+            width: 65px; 
+            padding: 6px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            text-align: center; 
+            font-size: 1rem;
+            outline: none;
+        }
+        input:focus { border-color: #319795; }
+        
+        .volume-container {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #edf2f7;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+        .volume-slider { width: 60%; cursor: pointer; }
+
+        /* БЛОК ЗАГАЛЬНОГО ЧАСУ (Як на вашому малюнку) */
+        .total-time-block {
+            margin: 20px 0 10px 0;
+        }
+        .total-label {
+            font-size: 0.85rem;
+            color: #718096;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .main-total-countdown {
+            font-size: 3.8rem;
+            font-weight: 700;
+            color: #2f855a;
+            line-height: 1.1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* КРУГОВА ДІАГРАМА ДЛЯ КРОКІВ */
+        .visualizer-box {
+            position: relative;
+            width: 170px;
+            height: 170px;
+            margin: 15px auto;
+        }
+        .circle-svg {
+            transform: rotate(-90deg);
+            width: 170px;
+            height: 170px;
+        }
+        .circle-bg { fill: none; stroke: #edf2f7; stroke-width: 7; }
+        .circle-progress {
+            fill: none;
+            stroke: #3182ce;
+            stroke-width: 7;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.1s linear;
+        }
+        .circle-text-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 100%;
+        }
+        .step-countdown { font-size: 2.6rem; font-weight: 700; color: #2d3748; line-height: 1; font-variant-numeric: tabular-nums; }
+        .step-label { font-size: 0.85rem; color: #718096; margin-top: 4px; font-weight: 600; }
+
+        .status-box { font-size: 1.1rem; margin-top: 10px; margin-bottom: 25px; color: #2c5282; min-height: 24px; font-weight: 600; }
+        
+        .button-group { display: flex; gap: 10px; justify-content: center; }
+        button { 
+            flex: 1; max-width: 130px; color: white; border: none; padding: 12px 0; 
+            font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; 
+        }
+        .btn-start { background-color: #319795; }
+        .btn-start:hover { background-color: #2b6cb0; }
+        .btn-pause { background-color: #dd6b20; }
+        .btn-pause:hover { background-color: #c05621; }
+        .btn-reset { background-color: #e53e3e; }
+        .btn-reset:hover { background-color: #c53030; }
+        button:disabled { background-color: #cbd5e1 !important; color: #94a3b8 !important; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="timer-container">
+    <h2>🧘 Йога Таймер для Занять</h2>
+    
+    <div class="setting-row">
+        <label>Загальний час вправи (хв):</label>
+        <input type="number" id="totalTimeInput" value="5" min="1" max="120">
+    </div>
+    <div class="setting-row">
+        <label>Сигналів у одному циклі (1-5):</label>
+        <input type="number" id="signalsCountInput" value="4" min="1" max="5" onchange="generateSignalInputs()">
+    </div>
+
+    <div class="dynamic-inputs" id="dynamicInputsContainer"></div>
+
+    <div class="volume-container">
+        <label>🔊 Гучність звуку:</label>
+        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
+    </div>
+
+    <div class="total-time-block">
+        <div class="total-label">Загальний час</div>
+        <div class="main-total-countdown" id="totalDisplay">05:00</div>
+    </div>
+
+    <div class="visualizer-box">
+        <svg class="circle-svg">
+            <circle class="circle-bg" cx="85" cy="85" r="75"></circle>
+            <circle class="circle-progress" id="progressBar" cx="85" cy="85" r="75" stroke-dasharray="471" stroke-dashoffset="0"></circle>
+        </svg>
+        <div class="circle-text-container">
+            <div id="stepDisplay" class="step-countdown">00</div>
+            <div id="stepSubLabel" class="step-label">Запуск</div>
+        </div>
+    </div>
+
+    <div class="status-box" id="statusDisplay">Готовий до старту</div>
+
+    <div class="button-group">
+        <button class="btn-start" id="startBtn" onclick="startTimer()">Старт</button>
+        <button class="btn-pause" id="pauseBtn" onclick="pauseTimer()" disabled>Пауза</button>
+        <button class="btn-reset" id="resetBtn" onclick="resetTimer()">Скинути</button>
+    </div>
+</div>
+
+<script>
+    let timerInterval;
+    let totalSecondsLeft = 0;
+    let stepSecondsLeft = 0;
+    let maxStepDuration = 1; 
+    let currentSignalIndex = 0; 
+    let currentCycle = 1;
+    let isRunning = false;
+    let isPaused = false;
+    let audioCtx;
+    let stepDurations = [];
+
+    const CIRCUMFERENCE = 2 * Math.PI * 75; // 471.23
+
+    function generateSignalInputs() {
+        if (isRunning) return;
+        let count = parseInt(document.getElementById('signalsCountInput').value) || 4;
+        if (count < 1) count = 1;
+        if (count > 5) count = 5;
+        document.getElementById('signalsCountInput').value = count;
+
+        let container = document.getElementById('dynamicInputsContainer');
+        container.innerHTML = '<div style="font-size:0.85rem; font-weight:600; color:#718096; margin-bottom:8px; text-align:left;">Тривалість кроків (сек):</div>';
+        
+        let defaultValues = [5, 7, 10, 6, 5];
+
+        for (let i = 1; i <= count; i++) {
+            let val = defaultValues[i-1] || 5;
+            let row = document.createElement('div');
+            row.className = 'dynamic-row';
+            row.innerHTML = `
+                <label>⏱️ Крок ${i}:</label>
+                <input type="number" class="signal-duration-input" value="${val}" min="1" max="300" onchange="updateTotalDisplayFromInput()">
+            `;
+            container.appendChild(row);
+        }
+        updateTotalDisplayFromInput();
+    }
+
+    function updateTotalDisplayFromInput() {
+        if (!isRunning) {
+            let totalMin = parseInt(document.getElementById('totalTimeInput').value) || 5;
+            document.getElementById('totalDisplay').innerText = `${totalMin.toString().padStart(2, '0')}:00`;
+            document.getElementById('stepDisplay').innerText = "00";
+            updateProgress(0);
+        }
+    }
+
+    document.getElementById('totalTimeInput').addEventListener('input', updateTotalDisplayFromInput);
+
+    function updateProgress(percent) {
+        let offset = CIRCUMFERENCE - (percent / 100) * CIRCUMFERENCE;
+        document.getElementById('progressBar').style.strokeDashoffset = offset;
+    }
+
+    function playSound(frequency, duration) {
+        let volumeLevel = parseFloat(document.getElementById('volumeSlider').value);
+        if (volumeLevel === 0) return; 
+
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            let osc = audioCtx.createOscillator();
+            let gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            
+            // ЗБІЛЬШЕНО ГУЧНІСТЬ ВДВІЧІ (множник 0.8 замість 0.4)
+            gainNode.gain.setValueAtTime(volumeLevel * 0.8, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch (e) { console.log(e); }
+    }
+
+    function formatTime(seconds) {
+        let mins = Math.floor(seconds / 60);
+        let secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+        if (isRunning && !isPaused) return;
+
+        if (!isPaused) {
+            let inputElements = document.querySelectorAll('.signal-duration-input');
+            stepDurations = [];
+            inputElements.forEach(inp => {
+                stepDurations.push(parseInt(inp.value) || 5);
+            });
+
+            let totalMin = parseInt(document.getElementById('totalTimeInput').value) || 5;
+            totalSecondsLeft = totalMin * 60;
+            
+            currentCycle = 1;
+            currentSignalIndex = 0;
+            stepSecondsLeft = stepDurations[currentSignalIndex];
+            maxStepDuration = stepSecondsLeft;
+            
+            playSound(261.63, 0.8); 
+        } else {
+            playSound(392.00, 0.2);
+        }
+
+        isRunning = true;
+        isPaused = false;
+
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('pauseBtn').disabled = false;
+        toggleInputs(true);
+
+        document.getElementById('stepDisplay').innerText = stepSecondsLeft;
+        document.getElementById('stepSubLabel').innerText = `Крок ${currentSignalIndex + 1}`;
+        let initialPercent = (stepSecondsLeft / maxStepDuration) * 100;
+        updateProgress(initialPercent);
+
+        timerInterval = setInterval(() => {
+            if (totalSecondsLeft <= 0) {
+                clearInterval(timerInterval);
+                document.getElementById('totalDisplay').innerText = "00:00";
+                document.getElementById('stepDisplay').innerText = "00";
+                document.getElementById('statusDisplay').innerText = "🎉 Практику повністю завершено!";
+                updateProgress(0);
+                playSound(523.25, 0.8);
+                setTimeout(() => playSound(659.25, 0.6), 150);
+                resetInterface();
+                return;
+            }
+
+            totalSecondsLeft--;
+            stepSecondsLeft--;
+
+            if (stepSecondsLeft <= 0) {
+                currentSignalIndex++;
+                
+                if (currentSignalIndex >= stepDurations.length) {
+                    currentSignalIndex = 0;
+                    currentCycle++;
+                    playSound(587.33, 0.4); 
+                } else {
+                    playSound(329.63, 0.25); 
+                }
+                
+                stepSecondsLeft = stepDurations[currentSignalIndex];
+                maxStepDuration = stepSecondsLeft;
+            }
+
+            document.getElementById('totalDisplay').innerText = formatTime(totalSecondsLeft);
+            document.getElementById('stepDisplay').innerText = stepSecondsLeft;
+            document.getElementById('stepSubLabel').innerText = `Крок ${currentSignalIndex + 1}`;
+            document.getElementById('statusDisplay').innerText = `Коло: ${currentCycle} | Сигнал: ${currentSignalIndex + 1}/${stepDurations.length}`;
+
+            let percent = (stepSecondsLeft / maxStepDuration) * 100;
+            updateProgress(percent);
+
+        }, 1000);
+    }
+
+    function pauseTimer() {
+        if (!isRunning || isPaused) return;
+        clearInterval(timerInterval); 
+        isPaused = true;
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('startBtn').innerText = "Продовжити";
+        document.getElementById('pauseBtn').disabled = true;
+        document.getElementById('statusDisplay').innerText = "Пауза";
+    }
+
+    function resetTimer() {
+        clearInterval(timerInterval);
+        isRunning = false;
+        isPaused = false;
+        resetInterface();
+        updateTotalDisplayFromInput();
+        document.getElementById('statusDisplay').innerText = "Готовий до старту";
+        document.getElementById('stepSubLabel').innerText = "Запуск";
+    }
+
+    function resetInterface() {
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('startBtn').innerText = "Старт";
+        document.getElementById('pauseBtn').disabled = true;
+        toggleInputs(false);
+    }
+
+    function toggleInputs(disable) {
+        document.getElementById('totalTimeInput').disabled = disable;
+        document.getElementById('signalsCountInput').disabled = disable;
+        let inputs = document.querySelectorAll('.signal-duration-input');
+        inputs.forEach(inp => inp.disabled = disable);
+    }
+
+    generateSignalInputs();
+</script>
+
+</body>
+</html>
